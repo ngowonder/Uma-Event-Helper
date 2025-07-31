@@ -17,6 +17,7 @@ class EventOverlay:
         self.overlay_height = 269
         self.support_events = []
         self.uma_events = []
+        self.ura_finale_events = []
         self.load_databases()
         self.setup_overlay()
         self.last_event_name = None
@@ -36,6 +37,10 @@ class EventOverlay:
                     if "UmaEvents" in character:
                         self.uma_events.extend(character["UmaEvents"])
             print(f"   ✓ Loaded {len(self.uma_events)} uma events")
+        if os.path.exists("assets/events/ura_finale.json"):
+            with open("assets/events/ura_finale.json", "r", encoding="utf-8-sig") as f:
+                self.ura_finale_events = json.load(f)
+            print(f"   ✓ Loaded {len(self.ura_finale_events)} ura finale events")
         print("   ✓ Databases loaded successfully")
 
     def setup_overlay(self):
@@ -157,6 +162,33 @@ class EventOverlay:
                         found_events[event_name_key] = {"source": "Uma Data", "options": {}}
                     elif found_events[event_name_key]["source"] == "Support Card":
                         found_events[event_name_key]["source"] = "Both"
+                    event_options = event.get("EventOptions", {})
+                    for option_name, option_reward in event_options.items():
+                        if option_name and any(keyword in option_name.lower() for keyword in ["top option", "bottom option", "middle option", "option1", "option2", "option3"]):
+                            found_events[event_name_key]["options"][option_name] = option_reward
+                    break
+        for event in self.ura_finale_events:
+            db_event_name = event.get("EventName", "").lower()
+            clean_db_name = db_event_name.replace("(❯)", "").replace("(❯❯)", "").replace("(❯❯❯)", "").strip()
+            for variation in event_variations:
+                clean_search_name = variation.lower().strip()
+                if clean_db_name == clean_search_name:
+                    event_name_key = event['EventName']
+                    if event_name_key not in found_events:
+                        found_events[event_name_key] = {"source": "Ura Finale", "options": {}}
+                    elif found_events[event_name_key]["source"] in ["Support Card", "Uma Data"]:
+                        found_events[event_name_key]["source"] = "Multiple Sources"
+                    event_options = event.get("EventOptions", {})
+                    for option_name, option_reward in event_options.items():
+                        if option_name and any(keyword in option_name.lower() for keyword in ["top option", "bottom option", "middle option", "option1", "option2", "option3"]):
+                            found_events[event_name_key]["options"][option_name] = option_reward
+                    break
+                elif self.fuzzy_match(clean_search_name, clean_db_name):
+                    event_name_key = event['EventName']
+                    if event_name_key not in found_events:
+                        found_events[event_name_key] = {"source": "Ura Finale", "options": {}}
+                    elif found_events[event_name_key]["source"] in ["Support Card", "Uma Data"]:
+                        found_events[event_name_key]["source"] = "Multiple Sources"
                     event_options = event.get("EventOptions", {})
                     for option_name, option_reward in event_options.items():
                         if option_name and any(keyword in option_name.lower() for keyword in ["top option", "bottom option", "middle option", "option1", "option2", "option3"]):

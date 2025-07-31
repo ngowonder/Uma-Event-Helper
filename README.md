@@ -68,7 +68,8 @@ Uma_event_helper/
 ├── assets/
 │   ├── events/
 │   │   ├── support_card.json # Support card event database
-│   │   └── uma_data.json    # Uma event database
+│   │   ├── uma_data.json    # Uma event database
+│   │   └── ura_finale.json  # Ura finale event database
 │   └── icons/
 │       └── event_choice_1.png # Event detection icon
 ├── tessdata/
