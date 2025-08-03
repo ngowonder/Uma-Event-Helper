@@ -95,6 +95,17 @@ class EventOverlay:
             cleaned = re.sub(r'[!l]{2,}', '!', variation)
             if cleaned not in event_variations and cleaned != variation:
                 cleaned_variations.append(cleaned)
+            # Add variation without trailing exclamation marks
+            no_exclamation = re.sub(r'!+$', '', variation).strip()
+            if no_exclamation not in event_variations and no_exclamation != variation and no_exclamation:
+                cleaned_variations.append(no_exclamation)
+            # Add variation without trailing single letters (OCR artifacts)
+            no_trailing_letter = re.sub(r'\s+[A-Za-z]\s*$', '', variation).strip()
+            if no_trailing_letter not in event_variations and no_trailing_letter != variation and no_trailing_letter:
+                cleaned_variations.append(no_trailing_letter)
+            no_trailing_letter2 = re.sub(r'[A-Za-z]\s*$', '', variation).strip()
+            if no_trailing_letter2 not in event_variations and no_trailing_letter2 != variation and no_trailing_letter2:
+                cleaned_variations.append(no_trailing_letter2)
         event_variations.extend(cleaned_variations)
         word_order_variations = []
         for variation in event_variations:
@@ -122,6 +133,8 @@ class EventOverlay:
             clean_db_name = db_event_name.replace("(❯)", "").replace("(❯❯)", "").replace("(❯❯❯)", "").strip()
             for variation in event_variations:
                 clean_search_name = variation.lower().strip()
+                # Clean search name the same way as database names
+                clean_search_name = clean_search_name.replace("(❯)", "").replace("(❯❯)", "").replace("(❯❯❯)", "").strip()
                 if clean_db_name == clean_search_name:
                     event_name_key = event['EventName']
                     if event_name_key not in found_events:
@@ -131,7 +144,7 @@ class EventOverlay:
                         if option_name and any(keyword in option_name.lower() for keyword in ["top option", "bottom option", "middle option", "option1", "option2", "option3"]):
                             found_events[event_name_key]["options"][option_name] = option_reward
                     break
-                elif self.fuzzy_match(clean_search_name, clean_db_name):
+                elif self.fuzzy_match(clean_search_name, clean_db_name) or self.smart_substring_match(clean_search_name, clean_db_name):
                     event_name_key = event['EventName']
                     if event_name_key not in found_events:
                         found_events[event_name_key] = {"source": "Support Card", "options": {}}
@@ -145,6 +158,8 @@ class EventOverlay:
             clean_db_name = db_event_name.replace("(❯)", "").replace("(❯❯)", "").replace("(❯❯❯)", "").strip()
             for variation in event_variations:
                 clean_search_name = variation.lower().strip()
+                # Clean search name the same way as database names
+                clean_search_name = clean_search_name.replace("(❯)", "").replace("(❯❯)", "").replace("(❯❯❯)", "").strip()
                 if clean_db_name == clean_search_name:
                     event_name_key = event['EventName']
                     if event_name_key not in found_events:
@@ -156,7 +171,7 @@ class EventOverlay:
                         if option_name and any(keyword in option_name.lower() for keyword in ["top option", "bottom option", "middle option", "option1", "option2", "option3"]):
                             found_events[event_name_key]["options"][option_name] = option_reward
                     break
-                elif self.fuzzy_match(clean_search_name, clean_db_name):
+                elif self.fuzzy_match(clean_search_name, clean_db_name) or self.smart_substring_match(clean_search_name, clean_db_name):
                     event_name_key = event['EventName']
                     if event_name_key not in found_events:
                         found_events[event_name_key] = {"source": "Uma Data", "options": {}}
@@ -172,6 +187,8 @@ class EventOverlay:
             clean_db_name = db_event_name.replace("(❯)", "").replace("(❯❯)", "").replace("(❯❯❯)", "").strip()
             for variation in event_variations:
                 clean_search_name = variation.lower().strip()
+                # Clean search name the same way as database names
+                clean_search_name = clean_search_name.replace("(❯)", "").replace("(❯❯)", "").replace("(❯❯❯)", "").strip()
                 if clean_db_name == clean_search_name:
                     event_name_key = event['EventName']
                     if event_name_key not in found_events:
@@ -183,7 +200,7 @@ class EventOverlay:
                         if option_name and any(keyword in option_name.lower() for keyword in ["top option", "bottom option", "middle option", "option1", "option2", "option3"]):
                             found_events[event_name_key]["options"][option_name] = option_reward
                     break
-                elif self.fuzzy_match(clean_search_name, clean_db_name):
+                elif self.fuzzy_match(clean_search_name, clean_db_name) or self.smart_substring_match(clean_search_name, clean_db_name):
                     event_name_key = event['EventName']
                     if event_name_key not in found_events:
                         found_events[event_name_key] = {"source": "Ura Finale", "options": {}}
@@ -203,12 +220,39 @@ class EventOverlay:
         if len(search_words) >= 2 and len(db_words) >= 2:
             matches = sum(1 for word in search_words if word in db_words)
             match_ratio = matches / max(len(search_words), len(db_words))
-            return match_ratio >= 0.7
+            return match_ratio >= 0.7  # Increased fuzzy match threshold for more precision
         elif len(search_words) == 1 and len(db_words) == 1:
             search_word = search_words[0]
             db_word = db_words[0]
             return search_word in db_word or db_word in search_word
         return False
+
+    def smart_substring_match(self, search_name, db_name):
+        """Smart substring matching that prevents short words from matching longer phrases"""
+        # If search name is too short, don't match
+        if len(search_name) < 8:
+            return False
+        
+        # If search name is a single word and db_name has multiple words, be more careful
+        search_words = search_name.split()
+        db_words = db_name.split()
+        
+        if len(search_words) == 1 and len(db_words) > 1:
+            # Single word search in multi-word database entry - require longer words
+            search_word = search_words[0]
+            # Remove punctuation for length check
+            clean_word = ''.join(c for c in search_word if c.isalnum())
+            if len(clean_word) < 8:
+                return False
+            # Only match if the search word appears as a complete word in the database entry
+            return search_word in db_words
+        else:
+            # Multi-word search or single-word database entry
+            # Be more strict: only allow substring matching if the search name is significantly shorter
+            # This prevents "Shrine Visit" from matching "New Year's Shrine Visit"
+            if len(search_name) >= len(db_name) * 0.8:  # Search name must be at least 80% of db_name length
+                return False
+            return search_name in db_name or db_name in search_name
 
     def update_overlay(self, event_name, found_events):
         if found_events:

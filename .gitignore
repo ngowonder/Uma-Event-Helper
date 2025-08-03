@@ -1,0 +1,5 @@
+# Event detection test script (for debugging)
+event_detection_test.py
+
+# Debug capture images
+debug_event_capture_*.png
