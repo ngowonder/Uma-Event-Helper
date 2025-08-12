@@ -2,11 +2,22 @@ import json
 import os
 import time
 import pyautogui
+import re
 import tkinter as tk
 from tkinter import ttk
 from pyautogui import ImageNotFoundException
 from utils.screenshot import capture_region
 from core.ocr import extract_event_name_text
+
+
+# Precompile regular expressions for better performance
+l_pattern = re.compile(r'l\b')
+l_exclamation_pattern = re.compile(r'l([!?.,])')
+double_exclamation_pattern = re.compile(r'[!l]{2,}')
+trailing_exclamation_pattern = re.compile(r'!+$')
+trailing_letter_pattern = re.compile(r'\s+[A-Za-z]\s*$')
+trailing_letter_pattern2 = re.compile(r'[A-Za-z]\s*$')
+
 
 class EventOverlay:
     def __init__(self):
@@ -48,7 +59,7 @@ class EventOverlay:
         self.root.title("Event Overlay")
         self.root.geometry(f"{self.overlay_width}x{self.overlay_height}+{self.overlay_x}+{self.overlay_y}")
         self.root.overrideredirect(True)
-        self.root.attributes('-topmost', True)
+        self.root.attributes('-topmost', False)
         self.root.attributes('-alpha', 0.9)
         style = ttk.Style()
         style.theme_use('clam')
@@ -70,12 +81,12 @@ class EventOverlay:
 
     def generate_event_variations(self, event_name):
         event_variations = [event_name]
-        import re
+
         if 'l' in event_name:
-            variation = re.sub(r'l\b', '!', event_name)
+            variation = l_pattern.sub('!', event_name)
             if variation != event_name and variation not in event_variations:
                 event_variations.append(variation)
-            variation2 = re.sub(r'l([!?.,])', r'!\1', event_name)
+            variation2 = l_exclamation_pattern.sub(r'!\1', event_name)
             if variation2 != event_name and variation2 not in event_variations:
                 event_variations.append(variation2)
         if '!' in event_name:
@@ -92,18 +103,18 @@ class EventOverlay:
                 event_variations.append(variation)
         cleaned_variations = []
         for variation in event_variations:
-            cleaned = re.sub(r'[!l]{2,}', '!', variation)
+            cleaned = double_exclamation_pattern.sub('!', variation)
             if cleaned not in event_variations and cleaned != variation:
                 cleaned_variations.append(cleaned)
             # Add variation without trailing exclamation marks
-            no_exclamation = re.sub(r'!+$', '', variation).strip()
+            no_exclamation = trailing_exclamation_pattern.sub('', variation).strip()
             if no_exclamation not in event_variations and no_exclamation != variation and no_exclamation:
                 cleaned_variations.append(no_exclamation)
             # Add variation without trailing single letters (OCR artifacts)
-            no_trailing_letter = re.sub(r'\s+[A-Za-z]\s*$', '', variation).strip()
+            no_trailing_letter = trailing_letter_pattern.sub('', variation).strip()
             if no_trailing_letter not in event_variations and no_trailing_letter != variation and no_trailing_letter:
                 cleaned_variations.append(no_trailing_letter)
-            no_trailing_letter2 = re.sub(r'[A-Za-z]\s*$', '', variation).strip()
+            no_trailing_letter2 = trailing_letter_pattern2.sub('', variation).strip()
             if no_trailing_letter2 not in event_variations and no_trailing_letter2 != variation and no_trailing_letter2:
                 cleaned_variations.append(no_trailing_letter2)
         event_variations.extend(cleaned_variations)
@@ -283,6 +294,7 @@ class EventOverlay:
         try:
             try:
                 event_icon = pyautogui.locateCenterOnScreen("assets/icons/event_choice_1.png", confidence=0.8, minSearchTime=0.1)
+                self.root.lift()
             except ImageNotFoundException:
                 event_icon = None
             if event_icon and self.event_detection_start is None:
