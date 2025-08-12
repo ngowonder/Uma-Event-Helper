@@ -294,9 +294,11 @@ class EventOverlay:
         try:
             try:
                 event_icon = pyautogui.locateCenterOnScreen("assets/icons/event_choice_1.png", confidence=0.8, minSearchTime=0.1)
-                self.root.lift()
             except ImageNotFoundException:
                 event_icon = None
+            if event_icon:
+                self.root.attributes('-topmost', True)
+                self.root.lift()
             if event_icon and self.event_detection_start is None:
                 self.event_detection_start = time.time()
                 self.status_label.config(text="👁️ Event detected, waiting for stability...", foreground='#FFC107')
@@ -315,6 +317,7 @@ class EventOverlay:
                         self.event_displayed = True
                         self.event_detection_start = None
             elif not event_icon:
+                self.root.attributes('-topmost', False)
                 if self.event_displayed:
                     self.event_displayed = False
                     self.last_event_name = None
