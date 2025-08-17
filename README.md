@@ -1,5 +1,9 @@
 # Uma Event Helper
 
+This project is inspired by [Kisegami/Uma-Event-Helper](https://github.com/Kisegami/Uma-Event-Helper)
+
+---
+
 A real-time event overlay tool for Umamusume Pretty Derby that displays event information in a semi-transparent overlay window.
 
 **Note**: This project serves as a function test for [umamusume-auto-train](https://github.com/Kisegami/umamusume-auto-train) and may be developed as a standalone tool in the future.
