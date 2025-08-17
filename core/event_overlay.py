@@ -40,7 +40,7 @@ class EventOverlay:
         self.event_detection_start = None
 
         self.left_screen_region = (0, 0, 1920//2, 1080)
-        self.support_card_event_region = (240, 160, 200, 250)
+        self.support_card_event_region = (240, 160, 200, 70)
         self.event_template = cv2.imread("assets/icons/event_choice_1.png")
         self.support_card_event_template = cv2.imread("assets/icons/support_card_event.png")
         self.tracked_support_event = []
@@ -419,49 +419,26 @@ class EventOverlay:
     def monitor_events(self):
         try:
             try:
-                screenshot = capture_region(self.left_screen_region)
-                open_cv_image = np.array(screenshot)
-                open_cv_image = open_cv_image[:, :, ::-1]
-                event_icon = is_match_template(open_cv_image, self.event_template, threshold=0.8)
+                left_screenshot = capture_region(self.left_screen_region)
+                left_cv_image = np.array(left_screenshot)[:, :, ::-1]
+                event_icon = is_match_template(left_cv_image, self.event_template, threshold=0.8)
 
-                screenshot = capture_region(self.support_card_event_region)
-                open_cv_image = np.array(screenshot)
-                open_cv_image = open_cv_image[:, :, ::-1]
-                support_card_event = is_match_template(open_cv_image, self.support_card_event_template, threshold=0.8)
+                support_screenshot = capture_region(self.support_card_event_region)
+                support_cv_image = np.array(support_screenshot)[:, :, ::-1]
+                support_card_event = is_match_template(support_cv_image, self.support_card_event_template, threshold=0.8)
             except ImageNotFoundException:
                 event_icon = None
+                support_card_event = None
             if event_icon or support_card_event:
                 if not self.always_on_top:  # Only remove topmost if not in always-on-top mode
                     self.root.attributes('-topmost', True)
                 self.root.lift()
-
-            if event_icon:
                 if self.event_detection_start is None:
                     self.event_detection_start = time.time()
-                    self.status_label.config(text="👁️ Event detected, waiting for stability...", foreground='#FFC107')
-                if self.event_detection_start and not self.event_displayed:
-                    time_present = time.time() - self.event_detection_start
-                    if time_present >= 0.05:
-                        self.status_label.config(text="✅ Processing event...", foreground='#17A2B8')
-                        event_image = capture_region(self.event_region)
-                        event_name = extract_event_name_text(event_image)
-                        print(f"Event name: {event_name}")
-                        event_name = event_name.strip()
-                        print(f"Event name: {event_name}")
-                        if event_name and event_name != self.last_event_name:
-                            event_variations = self.generate_event_variations(event_name)
-                            print(f"Event variations: {event_variations}")
-                            found_events = self.search_events(event_variations)
-                            print(f"Found event: {found_events}")
-                            self.update_overlay(event_name, found_events)
-                            self.last_event_name = event_name
-                            self.event_displayed = True
-                            self.event_detection_start = None
-
-            elif support_card_event:
-                if self.event_detection_start is None:
-                    self.event_detection_start = time.time()
-                    self.status_label.config(text="👁️ Support event detected, waiting for stability...", foreground='#FFC107')
+                    if support_card_event:
+                        self.status_label.config(text="👁️ Support event detected, waiting for stability...", foreground='#FFC107')
+                    else:  # event_icon only
+                        self.status_label.config(text="👁️ Event icon detected, waiting for stability...", foreground='#FFC107')
                 if self.event_detection_start and not self.event_displayed:
                     time_present = time.time() - self.event_detection_start
                     if time_present >= 0.05:
@@ -469,18 +446,26 @@ class EventOverlay:
                         event_image = capture_region(self.event_region)
                         event_name = extract_event_name_text(event_image)
                         event_name = event_name.strip()
-                        if event_name and event_name != self.last_event_name and event_name not in self.tracked_support_event and event_name != "A Hint for Growth":
-                            event_variations = self.generate_event_variations(event_name)
-                            found_events = self.search_events(event_variations)
-                            if found_events:
-                                found_event_name = list(found_events.keys())[0]
-                                if found_events and found_event_name and found_event_name not in self.tracked_support_event:
-                                    # print(f"Added to tracked events: {found_event_name}")
-                                    self.tracked_support_event.append(found_event_name)
-                                    self.update_tracked_events_list()  # Update the tracker window if it's open
-                                    self.highlight_tracker_button()  # Highlight the button
-                            self.event_detection_start = None  # Reset the detection timer
 
+                        if support_card_event:
+                            if event_name and event_name not in self.tracked_support_event and event_name != "A Hint for Growth":
+                                event_variations = self.generate_event_variations(event_name)
+                                found_events = self.search_events(event_variations)
+                                if found_events:
+                                    found_event_name = list(found_events.keys())[0]
+                                    if found_event_name and found_event_name not in self.tracked_support_event:
+                                        self.tracked_support_event.append(found_event_name)
+                                        self.update_tracked_events_list()
+                                        self.highlight_tracker_button()
+                        if event_icon:
+                            if event_name and event_name != self.last_event_name:
+                                event_variations = self.generate_event_variations(event_name)
+                                found_events = self.search_events(event_variations)
+                                self.update_overlay(event_name, found_events)
+                                self.last_event_name = event_name
+                                self.event_displayed = True
+
+                        self.event_detection_start = None
             elif not event_icon and not support_card_event:
                 if not self.always_on_top:  # Only remove topmost if not in always-on-top mode
                     self.root.attributes('-topmost', False)
