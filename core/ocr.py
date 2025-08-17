@@ -10,8 +10,10 @@ tessdata_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'tessdat
 os.environ['TESSDATA_PREFIX'] = tessdata_dir
 
 # Precompile regular expressions for better performance
-arrow_pattern = re.compile(r'[❯❯❯❯❯❯]+')
+# arrow_pattern = re.compile(r'[❯❯❯❯❯❯]+')
+arrow_pattern = re.compile(r'[❯»►▶▷]+')
 uppercase_pattern = re.compile(r'[A-Z]')
+
 
 def extract_event_name_text(pil_img: Image.Image) -> str:
     """Extract event name text from image using Tesseract OCR with white background preprocessing."""
@@ -44,10 +46,10 @@ def extract_event_name_text(pil_img: Image.Image) -> str:
         # Remove common OCR artifacts
         text = arrow_pattern.sub('', text)  # Remove arrow symbols
 
-        # Remove everything before the first uppercase letter
-        match = uppercase_pattern.search(text)
-        if match:
-            text = text[match.start():]
+        # NOTE Remove the Uppercase Filtering
+        # match = uppercase_pattern.search(text)
+        # if match:
+            # text = text[match.start():]
 
         return text.strip()
 
