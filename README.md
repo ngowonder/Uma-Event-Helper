@@ -3,7 +3,7 @@
 <a href="https://www.buymeacoffee.com/ngowonder" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>  <a href='https://ko-fi.com/F1F21AN8FX' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi6.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
 
-This project is inspired by [Kisegami/Uma-Event-Helper](https://github.com/Kisegami/Uma-Event-Helper)
+This project is inspired by [Kisegami/Uma-Event-Helper](https://github.com/Kisegami/Uma-Event-Helper). Be sure to check out their work!
 
 ---
 
